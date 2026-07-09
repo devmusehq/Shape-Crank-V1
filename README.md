@@ -1,0 +1,75 @@
+# Shape Crank
+
+Shape Crank is currently a DevMuse JUCE/C++ shape-and-OD prototype.
+
+The shape-only prototype was preserved before the OD stage was added back.
+
+The shape-only checkpoint lives beside this project at:
+
+```text
+../Shape Crank - Shape Only Prototype
+```
+
+## Signal Flow
+
+```text
+Input
+-> Shape curve
+-> OD stage
+-> clean Level
+-> Output
+```
+
+There is no diode solver, amp simulation, cabinet simulation, compressor, noise gate, or visible EQ section in this prototype.
+
+## Shape Control
+
+`shape` controls one continuous curve with an eased/exponential pot response. At zero it is flat. As it rises, broad low tightening and broad high smoothing increase together. The knob is scaled so the earlier full-strength curve sits around three-quarters, leaving the final quarter for deeper amp-specific tightening.
+
+The current curve is based on a recording front-end move: clean up the DI before it hits a gain stage, while preserving the core guitar midrange.
+
+It uses:
+
+- gentle variable high-pass tightening below the main guitar body
+- broad low-mid control for the woolly 220-260 Hz mass
+- broad upper-edge control around the harsh 2.5-4 kHz region
+- gentle high shelf to smooth fizz around 6-8 kHz and above
+
+The curve is subtractive. It does not boost mids, and it is not exposed as individual EQ bands. It should be tuned by ear as one musical contour.
+
+## OD Control
+
+`drive` / `OD` is a simple musical soft-clipping stage after Shape.
+
+At zero, the OD path is bypassed and the signal remains Shape-only. As OD rises, a wet/dry blend brings in a lightly high-passed, asymmetric soft clip. The clipping stage uses a rounded tanh/atan hybrid for a softer shoulder, with enough range at the top of the control to push into stronger pedal drive.
+
+There is no hard clipping, diode/op-amp solver, final saturation, or makeup gain after the output.
+
+## Level Control
+
+`level` / `Level` is clean final output gain after the OD stage.
+
+No tone shaping, clipping, saturation, or limiting is attached to Level. Noon is unity gain, with trim below noon and clean amp-front-end push above noon.
+
+## Build
+
+From this folder:
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release --target ShapeCrankPlugin_Standalone
+```
+
+By default, `CMakeLists.txt` expects JUCE at:
+
+```text
+../DoomEngine/VoidLoomJUCE/JUCE
+```
+
+You can override that path:
+
+```sh
+cmake -S . -B build -DJUCE_PATH=/path/to/JUCE
+```
+
+The project can also build VST3 and AU targets through CMake/JUCE.

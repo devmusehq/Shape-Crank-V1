@@ -1,0 +1,68 @@
+name: Build Windows VST3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-vst3:
+    name: Build Windows VST3
+    runs-on: windows-2022
+    timeout-minutes: 60
+
+    env:
+      BUILD_DIR: build-windows
+      VST3_OUTPUT: build-windows/ShapeCrankPlugin_artefacts/Release/VST3/Shape Crank.vst3
+      ZIP_PATH: distribution/ShapeCrank-v0.1.0-Windows-VST3.zip
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B $env:BUILD_DIR `
+          -G "Visual Studio 17 2022" `
+          -A x64 `
+          "-DSHAPECRANK_FETCH_JUCE=ON" `
+          "-DJUCE_GIT_TAG=8.0.12"
+
+      - name: Build VST3
+        shell: pwsh
+        run: cmake --build $env:BUILD_DIR --config Release --target ShapeCrankPlugin_VST3 --parallel
+
+      - name: Check VST3 output
+        shell: pwsh
+        run: |
+          if (!(Test-Path $env:VST3_OUTPUT)) {
+            throw "Expected VST3 output was not found: $env:VST3_OUTPUT"
+          }
+
+          $windowsBinary = Get-ChildItem $env:VST3_OUTPUT -Recurse -File -Filter "Shape Crank.vst3" |
+            Where-Object { $_.FullName -match "x86_64-win" } |
+            Select-Object -First 1
+
+          if (!$windowsBinary) {
+            throw "The VST3 bundle was created, but no x86_64-win binary was found inside it."
+          }
+
+          Write-Host "Built VST3 bundle:"
+          Get-ChildItem $env:VST3_OUTPUT -Recurse | Select-Object FullName
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path distribution/windows | Out-Null
+          Copy-Item -Path $env:VST3_OUTPUT -Destination "distribution/windows/Shape Crank.vst3" -Recurse -Force
+          Compress-Archive -Path "distribution/windows/Shape Crank.vst3" -DestinationPath $env:ZIP_PATH -Force
+
+      - name: Upload Windows VST3
+        uses: actions/upload-artifact@v6
+        with:
+          name: ShapeCrank-Windows-VST3
+          path: ${{ env.ZIP_PATH }}
+          if-no-files-found: error
