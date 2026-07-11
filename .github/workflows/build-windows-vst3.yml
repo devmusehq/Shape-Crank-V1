@@ -2,9 +2,26 @@ name: Build Windows VST3
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label for the zip name, for example 0.1.1. Leave blank to use the tag or CMake default."
+        required: false
+        type: string
+      upload_to_release:
+        description: "Attach the Windows VST3 zip to a GitHub Release."
+        required: false
+        default: false
+        type: boolean
+      release_tag:
+        description: "Release tag to upload to when running manually, for example v0.1.1."
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows-vst3:
@@ -15,7 +32,7 @@ jobs:
     env:
       BUILD_DIR: build-windows
       VST3_OUTPUT: build-windows/ShapeCrankPlugin_artefacts/Release/VST3/Shape Crank.vst3
-      ZIP_PATH: distribution/ShapeCrank-v0.1.0-Windows-VST3.zip
+      ZIP_PATH: distribution/ShapeCrank-Windows-VST3.zip
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
@@ -56,8 +73,18 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
+          $version = "${{ inputs.version }}"
+          if (!$version -and "${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          }
+          if (!$version) {
+            $version = "0.1.0"
+          }
+
           New-Item -ItemType Directory -Force -Path distribution/windows | Out-Null
           Copy-Item -Path $env:VST3_OUTPUT -Destination "distribution/windows/Shape Crank.vst3" -Recurse -Force
+          $env:ZIP_PATH = "distribution/ShapeCrank-v$version-Windows-VST3.zip"
+          "ZIP_PATH=$env:ZIP_PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
           Compress-Archive -Path "distribution/windows/Shape Crank.vst3" -DestinationPath $env:ZIP_PATH -Force
 
       - name: Upload Windows VST3
@@ -66,3 +93,30 @@ jobs:
           name: ShapeCrank-Windows-VST3
           path: ${{ env.ZIP_PATH }}
           if-no-files-found: error
+
+      - name: Attach Windows VST3 to release
+        if: ${{ startsWith(github.ref, 'refs/tags/') || inputs.upload_to_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ inputs.release_tag }}"
+          if (!$tag) {
+            $tag = "${{ github.ref_name }}"
+          }
+          if (!$tag) {
+            throw "No release tag is available. Push a v* tag or provide release_tag when running manually."
+          }
+
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag $env:ZIP_PATH `
+              --repo $env:GITHUB_REPOSITORY `
+              --title "Shape Crank $tag" `
+              --notes "Automated Windows VST3 build for Shape Crank." `
+              --prerelease
+          } else {
+            gh release upload $tag $env:ZIP_PATH `
+              --repo $env:GITHUB_REPOSITORY `
+              --clobber
+          }

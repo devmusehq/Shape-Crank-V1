@@ -8,6 +8,14 @@ It is designed to remove the messy parts of a raw guitar signal before they hit 
 
 In short: Shape Crank helps a guitar hit an amp properly.
 
+## Download
+
+The current prototype VST3 builds are available from the GitHub Releases page:
+
+- [Download Shape Crank v0.1.0 for macOS and Windows](https://github.com/devmusehq/Shape-Crank-V1/releases/tag/v0.1.0)
+
+Install the VST3 by extracting the zip and copying `Shape Crank.vst3` into your normal VST3 plugin folder, then restart or rescan your DAW.
+
 Shape Crank is currently a DevMuse JUCE/C++ shape-and-OD prototype.
 
 The shape-only prototype was preserved before the OD stage was added back.
