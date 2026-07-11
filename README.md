@@ -1,5 +1,13 @@
 # Shape Crank
 
+## Plain-English Version
+
+Shape Crank is a guitar tone-shaping plugin. Put it before an amp, amp sim, or other gain stage and use it like a simple pedal: turn the main shape control until the guitar feels tighter, clearer, and better prepared for distortion.
+
+It is designed to remove the messy parts of a raw guitar signal before they hit the amp. That means less flubby low end, less harsh fizz, clearer pick attack, and a more focused sound without making you adjust a complicated EQ. The extra drive control can add some pedal-style grit, and the level control lets you push the next thing in the chain harder.
+
+In short: Shape Crank helps a guitar hit an amp properly.
+
 Shape Crank is currently a DevMuse JUCE/C++ shape-and-OD prototype.
 
 The shape-only prototype was preserved before the OD stage was added back.
