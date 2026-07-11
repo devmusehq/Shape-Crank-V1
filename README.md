@@ -16,6 +16,12 @@ The current prototype VST3 builds are available from the GitHub Releases page:
 
 Install the VST3 by extracting the zip and copying `Shape Crank.vst3` into your normal VST3 plugin folder, then restart or rescan your DAW.
 
+## License
+
+Shape Crank is free software licensed under the GNU General Public License v3.0. You can use it, study it, fork it, modify it, and redistribute your changes under the same GPLv3 terms.
+
+The Shape Crank name, DevMuse name, logos, artwork, and official release branding are not a free pass to present modified builds as official DevMuse releases. If you publish a fork or modified build, make it clear that it is your version and not an official Shape Crank release unless DevMuse has approved it.
+
 Shape Crank is currently a DevMuse JUCE/C++ shape-and-OD prototype.
 
 The shape-only prototype was preserved before the OD stage was added back.
