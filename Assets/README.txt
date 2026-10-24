@@ -1,3 +1,3 @@
-Shape Crank UI asset pack
+Legacy Shape Crank prototype artwork
 
-Clean pedal body, knob, LED, footswitch, and texture assets used by the Shape Crank editor.
+Retained as design reference. The 0.2.0 editor draws its pedal, controls and texture natively; these bitmap assets are no longer embedded in the plugin.

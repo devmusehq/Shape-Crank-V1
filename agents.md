@@ -23,19 +23,20 @@ Shape Crank should feel like a musical pedal, not a lab tool.
 
 The intended main controls are:
 
-- `Crank`
-- `Drive`
+- `Shape`
+- `Overdrive` (existing `drive` host parameter)
 - `Level`
 
-Optional only if already present and genuinely useful:
+Explicitly requested small trim pots:
 
-- `Shape`
+- `Bass trim`: broad 160 Hz shelf, -6 to +6 dB, default 0 dB
+- `Treble trim`: broad 3.2 kHz shelf, -6 to +6 dB, default 0 dB
 
 Avoid adding more controls unless explicitly requested.
 
 Do **not** add:
 
-- Bass / Mid / Treble
+- additional tone controls beyond the two requested trim pots
 - visible 7-band EQ sliders
 - noise gate
 - compressor
@@ -50,22 +51,21 @@ Do **not** add:
 
 ## Control Meaning
 
-### Crank
+### Shape
 
-`Crank` is the main identity control.
+`Shape` is the main identity control. Preserve its existing filter and response code.
 
-It applies a broad, musical, pre-drive voicing curve and controlled pre-drive push.
+It applies the existing broad, subtractive pre-drive voicing curve.
 
-As Crank increases:
+As Shape increases:
 
 - low end tightens
 - flub is reduced before distortion
-- useful mids come forward
+- the core midrange stays intact
 - pick attack becomes clearer
 - harsh top/fizz is controlled
-- the shaped signal is pushed harder into the drive stage
 
-Crank is **not** a hidden 7-band graphic EQ.
+Shape is **not** a hidden 7-band graphic EQ.
 
 It should behave like one smooth engineered curve.
 
@@ -100,9 +100,9 @@ Preferred signal flow:
 
 ```text
 Input
-→ Crank-controlled broad pre-drive voicing curve
-→ Pre-drive tightening / conditioning if needed
-→ Drive / clipping stage
-→ Final Level / output boost
-→ Gentle safety limiter only
+→ Original Shape-controlled broad pre-drive voicing curve
+→ Neutral-centred Bass and Treble shelf trims
+→ Oversampled Drive / clipping stage
+→ Final clean Level / output boost
+→ Output
 ```

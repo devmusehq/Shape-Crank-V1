@@ -1,97 +1,68 @@
 # Shape Crank
 
-## Plain-English Version
+Shape Crank is a DevMuse guitar pedal plugin for the front of an amp or amp sim. Shape tightens and smooths the guitar before gain, Overdrive adds grit through to full pedal saturation, and Level pushes the next stage with clean output gain.
 
-Shape Crank is a guitar tone-shaping plugin. Put it before an amp, amp sim, or other gain stage and use it like a simple pedal: turn the main shape control until the guitar feels tighter, clearer, and better prepared for distortion.
+## 0.2.0 development preview
 
-It is designed to remove the messy parts of a raw guitar signal before they hit the amp. That means less flubby low end, less harsh fizz, clearer pick attack, and a more focused sound without making you adjust a complicated EQ. The extra drive control can add some pedal-style grit, and the level control lets you push the next thing in the chain harder.
+This version keeps the original Shape curve and Level range, rebuilds the overdrive, adds two small curve trims and gives the editor a new pedal design.
 
-In short: Shape Crank helps a guitar hit an amp properly.
+- **Shape:** the original broad, subtractive curve. Zero is flat. The earlier full-strength curve still sits at about three-quarters.
+- **Overdrive:** two soft saturation stages with 16x oversampling. A continuous gain taper gives the lower and middle parts of the dial more use. Zero leaves the shaped signal clean.
+- **Level:** clean final gain, from -18 dB to +12 dB. Noon is unity. Its range and transfer function are unchanged.
+- **Bass trim:** a broad 160 Hz low shelf, -6 to +6 dB.
+- **Treble trim:** a broad 3.2 kHz high shelf, -6 to +6 dB.
 
-## Download
+Both trims default to 0 dB and sit after Shape, before Overdrive. They let you fine-tune the contour without changing the Shape control itself. Double-click a control to return it to its default. Shift-drag for fine adjustment; Tab and the arrow keys provide keyboard control. The amber light means the pedal is engaged.
 
-The current prototype VST3 builds are available from the GitHub Releases page:
+The editor uses native vector drawing: petrol enamel, cream print, black main knobs, recessed metal trim pots and a metal footswitch. It scales from 384 x 595 to 720 x 1116, with control values below the knobs.
 
-- [Download Shape Crank v0.1.0 for macOS and Windows](https://github.com/devmusehq/Shape-Crank-V1/releases/tag/v0.1.0)
-
-Install the VST3 by extracting the zip and copying `Shape Crank.vst3` into your normal VST3 plugin folder, then restart or rescan your DAW.
-
-## License
-
-Shape Crank is free software licensed under the GNU General Public License v3.0. You can use it, study it, fork it, modify it, and redistribute your changes under the same GPLv3 terms.
-
-The Shape Crank name, DevMuse name, logos, artwork, and official release branding are not a free pass to present modified builds as official DevMuse releases. If you publish a fork or modified build, make it clear that it is your version and not an official Shape Crank release unless DevMuse has approved it.
-
-Shape Crank is currently a DevMuse JUCE/C++ shape-and-OD prototype.
-
-The shape-only prototype was preserved before the OD stage was added back.
-
-The shape-only checkpoint lives beside this project at:
+## Signal flow
 
 ```text
-../Shape Crank - Shape Only Prototype
+Input -> original Shape curve -> Bass / Treble trims -> Overdrive -> clean Level -> Output
 ```
 
-## Signal Flow
+The overdrive uses two cascaded soft saturation stages, a small asymmetric bias, low-end conditioning, interstage smoothing and DC removal. FIR oversampling filters reduce folded harmonics. The dry and bypass paths receive the same fixed integer delay, reported to the host, so changing Drive or bypass does not change latency. The delay is 67 samples, about 1.4 ms at 48 kHz. Pot changes ramp smoothly; bypass crossfades over 10 ms while the processing stays warm.
 
-```text
-Input
--> Shape curve
--> OD stage
--> clean Level
--> Output
-```
+At zero Overdrive and neutral trims, the original Shape output passes through a pure delay. Level remains the final clean gain stage, including when its output exceeds 0 dBFS. Set it to suit the next amp or plugin.
 
-There is no diode solver, amp simulation, cabinet simulation, compressor, noise gate, or visible EQ section in this prototype.
+## Sessions and automation
 
-## Shape Control
+The existing plugin identity and first four parameter IDs, names, ranges and order are preserved: `shape`, `drive`, `level`, `bypass`. `bass` and `treble` are appended with a later AU version hint. Old sessions load with neutral trims, including when loaded after a preset that used the new trims.
 
-`shape` controls one continuous curve with an eased/exponential pot response. At zero it is flat. As it rises, broad low tightening and broad high smoothing increase together. The knob is scaled so the earlier full-strength curve sits around three-quarters, leaving the final quarter for deeper amp-specific tightening.
-
-The current curve is based on a recording front-end move: clean up the DI before it hits a gain stage, while preserving the core guitar midrange.
-
-It uses:
-
-- gentle variable high-pass tightening below the main guitar body
-- broad low-mid control for the woolly 220-260 Hz mass
-- broad upper-edge control around the harsh 2.5-4 kHz region
-- gentle high shelf to smooth fizz around 6-8 kHz and above
-
-The curve is subtractive. It does not boost mids, and it is not exposed as individual EQ bands. It should be tuned by ear as one musical contour.
-
-## OD Control
-
-`drive` / `OD` is a simple musical soft-clipping stage after Shape.
-
-At zero, the OD path is bypassed and the signal remains Shape-only. As OD rises, a wet/dry blend brings in a lightly high-passed, asymmetric soft clip. The clipping stage uses a rounded tanh/atan hybrid for a softer shoulder, with enough range at the top of the control to push into stronger pedal drive.
-
-There is no hard clipping, diode/op-amp solver, final saturation, or makeup gain after the output.
-
-## Level Control
-
-`level` / `Level` is clean final output gain after the OD stage.
-
-No tone shaping, clipping, saturation, or limiting is attached to Level. Noon is unity gain, with trim below noon and clean amp-front-end push above noon.
+Existing nonzero OD settings will sound different because the overdrive circuit and taper have changed. Keep the original 0.1.0 build available when you need an exact recall of an older driven sound.
 
 ## Build
 
-From this folder:
+Requires CMake 3.22+, a C++20 compiler and JUCE 8.0.12. For a reproducible dependency download:
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release --target ShapeCrankPlugin_Standalone
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSHAPECRANK_FETCH_JUCE=ON
+cmake --build build --config Release --target ShapeCrankPlugin_VST3 ShapeCrankPlugin_Standalone --parallel
 ```
 
-By default, `CMakeLists.txt` expects JUCE at:
+On macOS, `ShapeCrankPlugin_AU` builds the Audio Unit. To use an existing JUCE checkout, pass `-DJUCE_PATH=/path/to/JUCE` instead of the fetch option. `COPY_PLUGIN_AFTER_BUILD` is off; building does not replace an installed plugin.
 
-```text
-../DoomEngine/VoidLoomJUCE/JUCE
-```
-
-You can override that path:
+## Verification
 
 ```sh
-cmake -S . -B build -DJUCE_PATH=/path/to/JUCE
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSHAPECRANK_FETCH_JUCE=ON -DSHAPECRANK_BUILD_CHECKS=ON
+cmake --build build --config Release --target ShapeCrankChecks --parallel
+ctest --test-dir build -C Release --output-on-failure
 ```
 
-The project can also build VST3 and AU targets through CMake/JUCE.
+The checks cover the clean endpoint and fixed latency; 35 frozen Shape responses from commit `ec1aa9d`; the original Level law; trim range and centres; drive progression, an aggregate aliasing stress test and folded harmonics; DC rejection; parameter order; old and new sessions; mono/stereo layouts; sample rates from 22.05 to 192 kHz; zero, one-sample and oversized blocks; automation; bypass; and editor parameter attachments.
+
+The check executable can also render the actual native editor at three sizes and in bypass:
+
+```sh
+./build/ShapeCrankChecks --render /absolute/path/to/previews
+```
+
+## Downloads and license
+
+[The published 0.1.0 prototype builds](https://github.com/devmusehq/Shape-Crank-V1/releases/tag/v0.1.0) remain available. This branch is a development preview of 0.2.0.
+
+Shape Crank is free software under [GPLv3](LICENSE). The Shape Crank and DevMuse names, logos and official release branding do not grant permission to present a modified fork as an official DevMuse release.
+
+The historical shape-only checkpoint is documented in [PROTOTYPE_CHECKPOINT.md](PROTOTYPE_CHECKPOINT.md).
