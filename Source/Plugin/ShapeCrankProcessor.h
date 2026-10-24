@@ -12,6 +12,8 @@ inline constexpr const char* shape = "shape";
 inline constexpr const char* drive = "drive";
 inline constexpr const char* level = "level";
 inline constexpr const char* bypass = "bypass";
+inline constexpr const char* bass = "bass";
+inline constexpr const char* treble = "treble";
 } // namespace ParamIDs
 
 inline constexpr int shapeFilterCount = 4;
@@ -54,6 +56,7 @@ public:
     void releaseResources() override;
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) override;
+    void processBlockBypassed(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) override;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
@@ -62,7 +65,7 @@ public:
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.0; }
+    double getTailLengthSeconds() const override { return 0.15; }
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -78,21 +81,49 @@ public:
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     static float responseCurve(float knob);
-    static float softClip(float input, float driveAmount);
     static float levelGainDb(float knob);
 
+    void processAudio(juce::AudioBuffer<float>& buffer, bool hostBypassed);
     void prepareShapeCurve(double sampleRate);
     void processShapeCurve(juce::AudioBuffer<float>& buffer);
+    void processToneTrims(juce::AudioBuffer<float>& buffer);
     void processOverdrive(juce::AudioBuffer<float>& buffer);
     void processOutputLevel(juce::AudioBuffer<float>& buffer);
 
     juce::SmoothedValue<float> shapeValue;
     juce::SmoothedValue<float> driveValue;
     juce::SmoothedValue<float> levelValue;
+    juce::SmoothedValue<float> bassValue;
+    juce::SmoothedValue<float> trebleValue;
+    juce::SmoothedValue<float> effectMix;
     std::array<std::array<ShapeCurveFilter, shapeFilterCount>, 2> shapeCurve;
+    std::array<std::array<ShapeCurveFilter, 2>, 2> toneTrims;
+
+    std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
+    using IntegerDelay = juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None>;
+    IntegerDelay shapedDryDelay;
+    IntegerDelay bypassDelay;
+    juce::AudioBuffer<float> shapedDryBuffer;
+    juce::AudioBuffer<float> bypassBuffer;
+    juce::AudioBuffer<double> odControls;
+
     std::array<double, 2> odHighPassState {};
-    std::array<double, 2> odLowPassState {};
+    std::array<double, 2> odInterstageState {};
+    std::array<std::array<double, 2>, 2> odLowPassState {};
+    std::array<double, 2> odDCState {};
+
+    std::atomic<float>* shapeParameter = nullptr;
+    std::atomic<float>* driveParameter = nullptr;
+    std::atomic<float>* levelParameter = nullptr;
+    std::atomic<float>* bypassParameter = nullptr;
+    std::atomic<float>* bassParameter = nullptr;
+    std::atomic<float>* trebleParameter = nullptr;
+
     double currentSampleRate = 48000.0;
+    int maximumBlockSize = 0;
+    int trimUpdateCountdown = 0;
+    float lastBassDb = 100.0f;
+    float lastTrebleDb = 100.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ShapeCrankAudioProcessor)
 };

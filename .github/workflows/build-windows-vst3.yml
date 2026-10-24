@@ -46,11 +46,16 @@ jobs:
           -G "Visual Studio 17 2022" `
           -A x64 `
           "-DSHAPECRANK_FETCH_JUCE=ON" `
+          "-DSHAPECRANK_BUILD_CHECKS=ON" `
           "-DJUCE_GIT_TAG=8.0.12"
 
       - name: Build VST3
         shell: pwsh
-        run: cmake --build $env:BUILD_DIR --config Release --target ShapeCrankPlugin_VST3 --parallel
+        run: cmake --build $env:BUILD_DIR --config Release --target ShapeCrankChecks ShapeCrankPlugin_VST3 --parallel
+
+      - name: Check audio and session compatibility
+        shell: pwsh
+        run: ctest --test-dir $env:BUILD_DIR -C Release --output-on-failure
 
       - name: Check VST3 output
         shell: pwsh
@@ -78,7 +83,8 @@ jobs:
             $version = "${{ github.ref_name }}".TrimStart("v")
           }
           if (!$version) {
-            $version = "0.1.0"
+            $projectVersion = Select-String -Path CMakeLists.txt -Pattern 'project\(ShapeCrank VERSION ([0-9.]+)'
+            $version = $projectVersion.Matches.Groups[1].Value
           }
 
           New-Item -ItemType Directory -Force -Path distribution/windows | Out-Null
